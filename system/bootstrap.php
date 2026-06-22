@@ -47,10 +47,10 @@ try {
 	}
 
 	// -----------------------------------------------------------------------
-	// Check Core Configuration Files
+	// Check and Load The Settings.php File
 	// -----------------------------------------------------------------------
-	// These files contain essential application settings.
-	// The application cannot run without them.
+	// This file contains core application settings. Without it the framework freezes
+	// The application cannot run without it.
 	
 	// Application settings (timezone, paths, aliases, etc.)
 	if (!file_exists(__DIR__ . '/../config/settings.php')) {
@@ -59,6 +59,37 @@ try {
 		);
 	}
 
+	// Load application settings to help with early error handling
+	$settings = require_once __DIR__ . '/../config/settings.php';
+
+	// Set application timezone from configuration
+	// This ensures all date/time functions (date(), time(), Date helper, etc.)
+	// use the timezone specified in config/settings.php
+	if (isset($settings['timezone'])) {
+		date_default_timezone_set($settings['timezone']);
+	}
+
+	// Define development environment constant
+	// This affects error display and debugging features
+	if (isset($settings) && $settings['dev'] == true) {
+		define('DEV', true);
+	} 
+	else define('DEV', false);
+
+	// ===========================================================================
+	// ERROR HANDLING SETUP
+	// ===========================================================================
+	
+	// Register custom error handler
+	// This handles PHP errors, exceptions, and fatal errors gracefully
+	require_once __DIR__ . '/Exceptions/Shutdown.php';
+	
+	// -----------------------------------------------------------------------
+	// Check Core Configuration Files
+	// -----------------------------------------------------------------------
+	// These files contain essential application settings.
+	// The application cannot run without them.
+	
 	// Database connection settings
 	if (!file_exists(__DIR__ . '/../config/database.php')) {
 		throw new Exception(
@@ -102,23 +133,6 @@ try {
 	// CONFIGURATION LOADING - Load all config files
 	// ===========================================================================
 
-	// Load application settings
-	$settings = require_once __DIR__ . '/../config/settings.php';
-
-	// Set application timezone from configuration
-	// This ensures all date/time functions (date(), time(), Date helper, etc.)
-	// use the timezone specified in config/settings.php
-	if (isset($settings['timezone'])) {
-		date_default_timezone_set($settings['timezone']);
-	}
-
-	// Define development environment constant
-	// This affects error display and debugging features
-	if (isset($settings) && $settings['dev'] == true) {
-		define('DEV', true);
-	} 
-	else define('DEV', false);
-
 	// Load session settings
 	// These help sync browser sessions configurations and browser cookies
 	$session = require_once __DIR__ . '/../config/session.php';
@@ -154,14 +168,6 @@ try {
 			E_USER_NOTICE
 		);
 	} 
-
-	// ===========================================================================
-	// ERROR HANDLING SETUP
-	// ===========================================================================
-	
-	// Register custom error handler
-	// This handles PHP errors, exceptions, and fatal errors gracefully
-	require_once __DIR__ . '/Exceptions/Shutdown.php';
 
 	// ===========================================================================
 	// FRAMEWORK INITIALIZATION
