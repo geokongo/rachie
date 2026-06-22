@@ -25,7 +25,7 @@
 use Rackage\Router\Router;
 use Rackage\Registry;
 use Rackage\Input;
-use Rackage\Session;
+use Rackage\Session; 
 
 // ===========================================================================
 // INITIALIZE REQUEST INPUT
@@ -51,10 +51,8 @@ try {
 	// Load route definitions
 	$routes = require __DIR__ . '/../config/routes.php';
 
-} catch (Rackage\Routes\RouteException $e) {
-	$e->errorShow();
-	exit();
-}
+} 
+catch (Rackage\Routes\RouteException $exception) { throw $exception; }
 
 // ===========================================================================
 // CREATE AND DISPATCH ROUTER

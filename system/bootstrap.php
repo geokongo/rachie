@@ -22,7 +22,7 @@
  * @author Geoffrey Okongo <code@rachie.dev>
  * @copyright 2015 - 2030 Geoffrey Okongo
  * @category Rachie
- * @package Bootstrap
+ * @package Bootstrap 
  * @link https://github.com/glivers/rachie
  * @license http://opensource.org/licenses/MIT MIT License
  * @version 2.0.0
@@ -63,6 +63,13 @@ try {
 	if (!file_exists(__DIR__ . '/../config/database.php')) {
 		throw new Exception(
 			"Database configuration missing: config/database.php. Please restore if deleted."
+		);
+	}
+
+	// Session configuration files
+	if(!file_exists(__DIR__ . '/../config/session.php')){
+		throw new Exception(
+			"Session configuration missing: config/session.php. Please restore if deleted."
 		);
 	}
 
@@ -109,9 +116,12 @@ try {
 	// This affects error display and debugging features
 	if (isset($settings) && $settings['dev'] == true) {
 		define('DEV', true);
-	} else {
-		define('DEV', false);
-	}
+	} 
+	else define('DEV', false);
+
+	// Load session settings
+	// These help sync browser sessions configurations and browser cookies
+	$session = require_once __DIR__ . '/../config/session.php';
 
 	// Load database configuration
 	$database = require_once __DIR__ . '/../config/database.php';
@@ -123,7 +133,8 @@ try {
 	$cache = array();
 	if (file_exists(__DIR__ . '/../config/cache.php')) {
 		$cache = require_once __DIR__ . '/../config/cache.php';
-	} elseif (DEV) {
+	} 
+	elseif (DEV) {
 		// Warn in development if cache config is missing
 		trigger_error(
 			'Cache configuration not found. Create config/cache.php to enable caching features.',
@@ -135,13 +146,14 @@ try {
 	$mail = array();
 	if (file_exists(__DIR__ . '/../config/mail.php')) {
 		$mail = require_once __DIR__ . '/../config/mail.php';
-	} elseif (DEV) {
+	} 
+	elseif (DEV) {
 		// Warn in development if mail config is missing
 		trigger_error(
 			'Mail configuration not found. Create config/mail.php to enable email features.',
 			E_USER_NOTICE
 		);
-	}
+	} 
 
 	// ===========================================================================
 	// ERROR HANDLING SETUP
@@ -155,9 +167,16 @@ try {
 	// FRAMEWORK INITIALIZATION
 	// ===========================================================================
 
-	// Start PHP session
+	// Define a private session storage path to prevent session hijacking on shared hosting
+	session_save_path(__DIR__ . '/../vault/sessions');
+
+	// Enable the cleanup "Lottery" (1% chance per request) so PHP's GC clears Session from custom folder
+	ini_set('session.gc_probability', 1);
+	ini_set('session.gc_divisor', 100);
+
+	// Start PHP session, passing the application specific config params
 	// Required for session handling, flash messages, CSRF protection, etc.
-	session_start();
+	session_start($session);
 
 	// Load Composer autoloader
 	// Enables PSR-4 autoloading for all framework and application classes
@@ -221,14 +240,11 @@ try {
 		
 		// This is a web request - load the router
 		// start.php contains the routing logic and controller dispatch
-		$start = require_once __DIR__ . '/start.php';
-		
-		// Launch the application
-		//$start();
+		$start = require_once __DIR__ . '/start.php';		
 	}
 
 } 
-catch (Exception $e) {
+catch (\Throwable $exception) {
 	
 	// ===========================================================================
 	// BOOTSTRAP ERROR HANDLING
@@ -236,22 +252,40 @@ catch (Exception $e) {
 	// If we get here, something critical failed during bootstrap
 	// Display appropriate error message based on request type
 	
-	// Check if this is a console request
-	if (defined('ROLINE_INSTANCE')) {
-		
-		// Console request - output plain text error
-		echo $e->getMessage();
-		exit();
-		
-	} else {
-		
-		// Web request - display formatted error page
-		$error = $e->getMessage();
-		
-		// Load error page template
-		include __DIR__ . '/Exceptions/View.php';
-		
-		// Stop execution
-		exit();
-	}
+	// Detect the path accessed during error
+	$path   	= $_SERVER['REQUEST_URI'] ?? 'CLI';
+	
+	// Get application root path from settings
+	$root = $settings['root'];
+
+	// Build stack trace for context
+	$trace 		= $exception->getTraceAsString();
+	$context 	= substr($trace, 0, (strpos($trace, "#10")) ? strpos($trace, "#10") - 2 : 2000);
+	$context 	= preg_replace('/\n/', ' ', $context);
+
+	// Get human-readable error type name
+	$file 		= $exception->getFile();
+	$line 		= $exception->getLine();
+	$classname	= get_class($exception);
+	$message 	= $exception->getMessage();
+
+	// Compose error message for both display and logging
+	$timestamp  	= "[" . date("d-M-Y H:i:s") . "]";
+	$errorMessage 	= sprintf("[%s] [%s] %s in %s on line (%s) STACK TRACE: %s",
+					    $classname, $path, $message, $file, $line, $context);
+
+	// Remove absolute path and .php extension for cleaner display
+	$errorMessage = str_replace([$root, '.php'], '', $errorMessage);
+
+	// Compose error message for log file (plain text, no HTML)
+	$errorLogged  = $timestamp . " " . $errorMessage;
+
+	// Get error log file path from settings
+	$logFile = $root . '/' . $settings['error_log'];
+
+	// Write error to log file
+	error_log($errorLogged . PHP_EOL, 3, $logFile);
+
+	// Display error based on environment
+	displayError($errorMessage, $settings);
 }

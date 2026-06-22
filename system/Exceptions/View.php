@@ -21,7 +21,7 @@
 			padding: 20px;
 			color: #333;
 		}
-
+ 
 		.error-container {
 			background: white;
 			border-radius: 12px;
@@ -161,7 +161,7 @@
 	<div class="error-container">
 		<div class="error-header">
 			<span class="error-icon">⚠️</span>
-			<h1>Application Error</h1>
+			<h1><?php echo isset($title) ? htmlspecialchars($title) : 'Application Error'; ?></h1>
 			<p><?php echo isset($title) ? htmlspecialchars($title) : 'Something went wrong'; ?></p>
 		</div>
 
@@ -175,9 +175,9 @@
 				</div>
 			<?php else: ?>
 				<!-- Development Mode: Show error details -->
-				<?php if (isset($error)): ?>
+				<?php if (isset($message)): ?>
 					<div class="error-message">
-						<?php echo $error; ?>
+						<p><?php echo $message; ?></p>
 					</div>
 				<?php endif; ?>
 
@@ -192,7 +192,7 @@
 			<?php if (isset($hideError) && $hideError): ?>
 				Error logged and administrators notified
 			<?php else: ?>
-				Development Mode - Detailed errors shown
+			 	Development Mode - Detailed errors shown
 			<?php endif; ?>
 		</div>
 	</div>

@@ -22,7 +22,7 @@
  * @link https://github.com/glivers/rachie
  * @license http://opensource.org/licenses/MIT MIT License
  * @version 2.0.1
- */
+ */ 
 
 // ===========================================================================
 // CONFIGURATION ACCESS
@@ -62,17 +62,22 @@ $ERROR_TYPES = array(
 // Disable PHP's native error logging (we handle it ourselves)
 ini_set('log_errors', 'Off');
 
+// ini_set('error_log', dirname(dirname(dirname(__FILE__))) . '/vault/logs/error.log');
+
 // Define fatal error types
 define('E_FATAL', E_ERROR | E_USER_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR);
 
 // Set error reporting level
 define('ERROR_REPORTING', E_ALL | E_STRICT);
 
-// Register shutdown function (catches fatal errors)
-register_shutdown_function('shut');
-
 // Register error handler (catches non-fatal errors)
-set_error_handler('handler');
+set_error_handler('error_handler');
+
+// Register exception handler for caught and uncaught \Exceptions
+set_exception_handler('exception_handler');
+
+// Register shutdown function (catches fatal errors)
+register_shutdown_function('shutdown_handler');
 
 // ===========================================================================
 // SHUTDOWN HANDLER - Catches fatal errors
@@ -86,17 +91,67 @@ set_error_handler('handler');
  *
  * @return void
  */
-function shut()
+function shutdown_handler()
 {
 	// Get the last error that occurred
 	$error = error_get_last();
 
 	// Check if it was a fatal error
-	if ($error && ($error['type'] & E_FATAL))
-	{
-		// Pass to error handler
-		handler($error['type'], $error['message'], $error['file'], $error['line']);
+	if ($error && ($error['type'] & E_FATAL)){
+
+		$exception 	= new \ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']);
+		exception_handler($exception);
 	}
+}
+
+/**
+ * Exception handler for both caught and uncaught exceptions
+ * 
+ * @param Object \Throwable object
+ */
+function exception_handler(\Throwable $exception)
+{
+	global $settings, $ERROR_TYPES;
+
+	// Detect the path accessed during error
+	$path   	= $_SERVER['REQUEST_URI'] ?? 'CLI';
+	
+	// Get application root path from settings
+	$root = $settings['root'];
+
+	// Build stack trace for context
+	$trace 		= $exception->getTraceAsString();
+	$context 	= substr($trace, 0, (strpos($trace, "#10")) ? strpos($trace, "#10") - 2 : 2000);
+	$context 	= preg_replace('/\n/', ' ', $context);
+
+	$file 		= $exception->getFile();
+	$line 		= $exception->getLine();
+	$classname	= get_class($exception);
+	$message 	= $exception->getMessage();
+	
+	// Get human-readable error type name
+	// $type = isset($ERROR_TYPES[$number]) ? $ERROR_TYPES[$number] : 'UNKNOWN_ERROR';
+	// $severity 	= $exception->getSeverity();
+
+	// Compose error message for both display and logging
+	$timestamp  	= "[" . date("d-M-Y H:i:s") . "]";
+	$errorMessage 	= sprintf("[%s] [%s] %s in %s on line (%s) STACK TRACE: %s",
+					    $classname, $path, $message, $file, $line, $context);
+
+	// Remove absolute path and .php extension for cleaner display
+	$errorMessage = str_replace([$root, '.php'], '', $errorMessage);
+
+	// Compose error message for log file (plain text, no HTML)
+	$errorLogged  = $timestamp . " " . $errorMessage;
+
+	// Get error log file path from settings
+	$logFile = $root . '/' . $settings['error_log'];
+
+	// Write error to log file
+	error_log($errorLogged . PHP_EOL, 3, $logFile);
+
+	// Display error based on environment
+	displayError($errorMessage, $settings);
 }
 
 // ===========================================================================
@@ -115,39 +170,13 @@ function shut()
  * @param int $errLine Line number where error occurred
  * @return void
  */
-function handler($errNo, $errMsg, $errFile, $errLine)
+function error_handler($type, $message, $file, $line)
 {
+	// If error_reporting() return 0, the developer intentionally muted this line with @
+	if(!(error_reporting() & $type)) return false;
 
-	global $settings, $ERROR_TYPES;
-
-	// Get human-readable error type name
-	$type = isset($ERROR_TYPES[$errNo]) ? $ERROR_TYPES[$errNo] : 'UNKNOWN_ERROR';
-
-	// Get application root path from settings
-	$root = $settings['root'];
-
-	// Build stack trace for context
-	$exception = new Exception;
-	$trace = $exception->getTraceAsString();
-	$context = substr($trace, 0, (strpos($trace, "#10")) ? strpos($trace, "#10") - 2 : 2000);
-
-	// Compose error message for display (with HTML formatting)
-	$showError = "<b>$type: $errMsg in $errFile on line($errLine)</b> STACK TRACE: $context";
-
-	// Remove absolute path and .php extension for cleaner display
-	$showError = str_replace(array($root, '.php'), '', $showError);
-
-	// Compose error message for log file (plain text, no HTML)
-	$logError = "$type $errMsg in $errFile on line ($errLine) STACK TRACE: $context";
-
-	// Get error log file path from settings
-	$logFile = $root . '/' . $settings['error_log'];
-
-	// Write error to log file
-	error_log($logError . PHP_EOL, 3, $logFile);
-
-	// Display error based on environment
-	displayError($showError, $logError);
+	// Therow a new error exception mapping the arguments accordingly
+	throw new \ErrorException($message, 0, $type, $file, $line);	
 }
 
 // ===========================================================================
@@ -171,88 +200,104 @@ function handler($errNo, $errMsg, $errFile, $errLine)
  * @param string $logError Plain text error message
  * @return void
  */
-function displayError($showError, $logError)
+function displayError($message, $settings)
 {
 	// Clear any output buffers to prevent partial rendering
-	// This ensures only the error page displays (not mixed with app output)
 	while (ob_get_level() > 0) {
 		ob_end_clean();
 	}
 
-	// Check if this is a console request
-	$isConsole = defined('ROLINE_INSTANCE');
+	$title 	= $settings['title'];
+
+	header_remove();
+    header('Content-Type: text/html; charset=utf-8');
+    header('HTTP/1.1 500 Internal Server Error');
+
+	//set HTTP 500 error code (works in both web and CLI/testing)
+	http_response_code(500);
 
 	// Path to error page template
-	$errorPage = dirname(__FILE__) . '/View.php';
+	$template = __DIR__ . '/View.php';
+	$customTpl= $settings['root'] . '/application/views/500.php';
 
+	// For Roline CLI just echo the entire error message
+	// if($isConsole) echo $message;
+	if(defined('ROLINE_INSTANCE')) echo $message;
+	
 	// PRODUCTION ENVIRONMENT - Hide detailed errors
-	if (DEV === false)
-	{
-		if ($isConsole)
-		{
-			// Console: Show log message (no HTML)
-			echo $logError;
-		}
+	else if(DEV == false){
+		
+		// Web: Show generic error page
+		$hideError 	= true;
+
+		// Try to load template, fallback to plain HTML if missing
+		if (file_exists($customTpl)) include $customTpl;
+		else if (file_exists($template)) include $template;
 		else
 		{
-			global $settings;
-			$title = $settings['title'];
-			// Web: Show generic error page
-			$hideError = true;
-			$error = $showError;
 
-			// Try to load template, fallback to plain HTML if missing
-			if (file_exists($errorPage))
-			{
-				include $errorPage;
-			}
-			else
-			{
-				// Fallback: simple HTML error page
-				echo '<!DOCTYPE html><html><head><title>Error</title></head><body>';
-				echo '<h1>An error occurred</h1>';
-				echo '<p>The application encountered an error. Please contact the administrator.</p>';
-				echo '</body></html>';
-			}
+// Fallback: simple HTML error page
 
-			exit();
-		}
+echo <<<HTML
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>500 Internal Server Error</title>
+            <style>
+                body { font-family: sans-serif; background: #f8fafc; color: #1e293b; padding: 40px; text-align: center; }
+                .card { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-top: 4px solid #ef4444; text-align: left; }
+                h1 { font-size: 24px; margin-top: 0; color: #0f172a; }
+                pre { background: #f1f5f9; padding: 15px; border-radius: 4px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h1>An Application Error Occurred</h1>
+                <p><strong>Message:</strong> The application encountered an error. Please contact the administrator:</p>
+            </div>
+        </body>
+        </html>
+HTML;
+    	}
 	}
 
 	// DEVELOPMENT ENVIRONMENT - Show detailed errors
-	else
-	{
-		if ($isConsole)
-		{
-			// Console: Show log message (no HTML)
-			echo $logError;
-		}
+	else {
+		// Web: Show detailed error page
+		$hideError = false;
+
+		// Try to load template, fallback to plain HTML if missing
+		if (file_exists($customTpl)) include $customTpl;
+		else if (file_exists($template)) include $template;
 		else
 		{
-			global $settings;
-			$title = $settings['title'];
-			$hideError = false;
+			
+// Fallback: show error directly with warning about missing template
 
-			// Web: Show detailed error page
-			$error = $showError;
-
-			// Try to load template, fallback to plain HTML if missing
-			if (file_exists($errorPage))
-			{
-				include $errorPage;
-			}
-			else
-			{
-				// Fallback: show error directly with warning about missing template
-				echo '<!DOCTYPE html><html><head><title>Error</title></head><body>';
-				echo '<h1>Error Handler Warning</h1>';
-				echo '<p><strong>Error template missing:</strong> ' . htmlspecialchars($errorPage) . '</p>';
-				echo '<hr><h2>Error Details:</h2>';
-				echo '<pre>' . htmlspecialchars($error) . '</pre>';
-				echo '</body></html>';
-			}
-
-			exit();
-		}
+echo <<<HTML
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>500 Internal Server Error</title>
+		<style>
+			body { font-family: sans-serif; background: #f8fafc; color: #1e293b; padding: 40px; text-align: center; }
+			.card { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-top: 4px solid #ef4444; text-align: left; }
+			h1 { font-size: 24px; margin-top: 0; color: #0f172a; }
+			pre { background: #f1f5f9; padding: 15px; border-radius: 4px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; }
+		</style>
+	</head>
+	<body>
+		<div class="card">
+			<h1>Internal Server Error</h1>
+			<p><strong>Message:</strong> Error template missing: {$template}</p>
+			<pre>{$message}</pre>
+		</div>
+	</body>
+	</html>
+HTML;
+    	}				
 	}
+
+	// Stop code execution completely
+	exit(1);
 }
