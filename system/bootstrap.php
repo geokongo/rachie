@@ -71,10 +71,10 @@ try {
 
 	// Define development environment constant
 	// This affects error display and debugging features
-	if (isset($settings) && $settings['dev'] == true) {
-		define('DEV', true);
+	if (isset($settings) && $settings['debug'] == true) {
+		define('DEBUG', true);
 	} 
-	else define('DEV', false);
+	else define('DEBUG', false);
 
 	// ===========================================================================
 	// ERROR HANDLING SETUP
@@ -157,7 +157,7 @@ try {
 	if (file_exists(__DIR__ . '/../config/cache.php')) {
 		$cache = require_once __DIR__ . '/../config/cache.php';
 	} 
-	elseif (DEV) {
+	else if (DEBUG) {
 		// Warn in development if cache config is missing
 		trigger_error(
 			'Cache configuration not found. Create config/cache.php to enable caching features.',
@@ -170,7 +170,7 @@ try {
 	if (file_exists(__DIR__ . '/../config/mail.php')) {
 		$mail = require_once __DIR__ . '/../config/mail.php';
 	} 
-	elseif (DEV) {
+	else if (DEBUG) {
 		// Warn in development if mail config is missing
 		trigger_error(
 			'Mail configuration not found. Create config/mail.php to enable email features.',
