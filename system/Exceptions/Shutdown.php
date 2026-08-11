@@ -9,11 +9,11 @@
  *
  * Loading Context:
  *   - Loaded AFTER config/settings.php ($settings array available)
- *   - Loaded AFTER DEV constant is defined
+ *   - Loaded AFTER DEGUB constant is defined
  *   - Loaded BEFORE Registry initialization
  *
  * Limitations:
- *   - Can access $settings array and DEV constant
+ *   - Can access $settings array and DEGUB constant
  *
  * @author Geoffrey Okongo <code@rachie.dev>
  * @copyright 2015 - 2030 Geoffrey Okongo
@@ -203,18 +203,7 @@ function error_handler($type, $message, $file, $line)
 function displayError($message, $settings)
 {
 	// Clear any output buffers to prevent partial rendering
-	while (ob_get_level() > 0) {
-		ob_end_clean();
-	}
-
-	$title 	= $settings['title'];
-
-	header_remove();
-    header('Content-Type: text/html; charset=utf-8');
-    header('HTTP/1.1 500 Internal Server Error');
-
-	//set HTTP 500 error code (works in both web and CLI/testing)
-	http_response_code(500);
+	while (ob_get_level() > 0) { ob_end_clean(); }
 
 	// Path to error page template
 	$template = __DIR__ . '/View.php';
@@ -222,82 +211,96 @@ function displayError($message, $settings)
 
 	// For Roline CLI just echo the entire error message
 	// if($isConsole) echo $message;
-	if(defined('ROLINE_INSTANCE')) echo $message;
-	
-	// PRODUCTION ENVIRONMENT - Hide detailed errors
-	else if(DEV == false){
-		
-		// Web: Show generic error page
-		$hideError 	= true;
-
-		// Try to load template, fallback to plain HTML if missing
-		if (file_exists($customTpl)) include $customTpl;
-		else if (file_exists($template)) include $template;
-		else
-		{
-
-// Fallback: simple HTML error page
-
-echo <<<HTML
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>500 Internal Server Error</title>
-            <style>
-                body { font-family: sans-serif; background: #f8fafc; color: #1e293b; padding: 40px; text-align: center; }
-                .card { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-top: 4px solid #ef4444; text-align: left; }
-                h1 { font-size: 24px; margin-top: 0; color: #0f172a; }
-                pre { background: #f1f5f9; padding: 15px; border-radius: 4px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h1>An Application Error Occurred</h1>
-                <p><strong>Message:</strong> The application encountered an error. Please contact the administrator:</p>
-            </div>
-        </body>
-        </html>
-HTML;
-    	}
+	if(defined('ROLINE_INSTANCE')) {
+		echo $message;
 	}
 
-	// DEVELOPMENT ENVIRONMENT - Show detailed errors
+	// It's a browser request
 	else {
-		// Web: Show detailed error page
-		$hideError = false;
 
-		// Try to load template, fallback to plain HTML if missing
-		if (file_exists($customTpl)) include $customTpl;
-		else if (file_exists($template)) include $template;
-		else
-		{
+		$title 	= $settings['title'];
+
+		header_remove();
+		header('Content-Type: text/html; charset=utf-8');
+		header('HTTP/1.1 500 Internal Server Error');
+
+		//set HTTP 500 error code (works in both web and CLI/testing)
+		http_response_code(500);
+	
+		// PRODUCTION ENVIRONMENT - Hide detailed errors
+		if(DEBUG == false){
 			
-// Fallback: show error directly with warning about missing template
+			// Web: Show generic error page
+			$hideError 	= true;
+
+			// Try to load template, fallback to plain HTML if missing
+			if (file_exists($customTpl)) include $customTpl;
+			else if (file_exists($template)) include $template;
+			else
+			{
+
+	// Fallback: simple HTML error page
+echo <<<HTML
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<title>500 Internal Server Error</title>
+				<style>
+					body { font-family: sans-serif; background: #f8fafc; color: #1e293b; padding: 40px; text-align: center; }
+					.card { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-top: 4px solid #ef4444; text-align: left; }
+					h1 { font-size: 24px; margin-top: 0; color: #0f172a; }
+					pre { background: #f1f5f9; padding: 15px; border-radius: 4px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; }
+				</style>
+			</head>
+			<body>
+				<div class="card">
+					<h1>An Application Error Occurred</h1>
+					<p><strong>Message:</strong> The application encountered an error. Please contact the administrator:</p>
+				</div>
+			</body>
+			</html>
+HTML;
+			}
+		}
+
+		// DEVELOPMENT ENVIRONMENT - Show detailed errors
+		else {
+			// Web: Show detailed error page
+			$hideError = false;
+
+			// Try to load template, fallback to plain HTML if missing
+			if (file_exists($customTpl)) include $customTpl;
+			else if (file_exists($template)) include $template;
+			else
+			{
+				
+	// Fallback: show error directly with warning about missing template
 
 echo <<<HTML
-	<!DOCTYPE html>
-	<html>
-	<head>
-		<title>500 Internal Server Error</title>
-		<style>
-			body { font-family: sans-serif; background: #f8fafc; color: #1e293b; padding: 40px; text-align: center; }
-			.card { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-top: 4px solid #ef4444; text-align: left; }
-			h1 { font-size: 24px; margin-top: 0; color: #0f172a; }
-			pre { background: #f1f5f9; padding: 15px; border-radius: 4px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; }
-		</style>
-	</head>
-	<body>
-		<div class="card">
-			<h1>Internal Server Error</h1>
-			<p><strong>Message:</strong> Error template missing: {$template}</p>
-			<pre>{$message}</pre>
-		</div>
-	</body>
-	</html>
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<title>500 Internal Server Error</title>
+			<style>
+				body { font-family: sans-serif; background: #f8fafc; color: #1e293b; padding: 40px; text-align: center; }
+				.card { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-top: 4px solid #ef4444; text-align: left; }
+				h1 { font-size: 24px; margin-top: 0; color: #0f172a; }
+				pre { background: #f1f5f9; padding: 15px; border-radius: 4px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; }
+			</style>
+		</head>
+		<body>
+			<div class="card">
+				<h1>Internal Server Error</h1>
+				<p><strong>Message:</strong> Error template missing: {$template}</p>
+				<pre>{$message}</pre>
+			</div>
+		</body>
+		</html>
 HTML;
-    	}				
+			}				
+		}
 	}
 
-	// Stop code execution completely
-	exit(1);
+		// Stop code execution completely
+		exit(1);
 }
