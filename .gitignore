@@ -1,8 +1,6 @@
-composer.phar
-application/**
 vendor/
-config/**
-vault/**
+config/
+vault/
 tests/**
 phpunit.phar
 .phpunit.cache
