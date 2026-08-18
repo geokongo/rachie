@@ -102,7 +102,7 @@ RewriteRule ^(.*)$ index.php?_rachie_route=$1 [QSA,L]
 - Validates required files exist
 - Loads configs: `settings.php`, `database.php`, `cache.php`, `mail.php`
 - Sets timezone from config
-- Defines `DEV` constant (dev vs production mode)
+- Defines `DEBUG` constant (debug vs production mode)
 - Registers error handlers
 - Starts PHP session
 - Loads Composer autoloader
@@ -179,10 +179,10 @@ Routes are checked in this order:
 Perfect for CMS or dynamic content. Enable in `config/settings.php`:
 
 ```php
-'routing' => [
-    'catch_all' => true,
-    'controller' => 'Pages',
-    'method' => 'show',
+'catch_all' => [
+    'ca_enabled' => true,
+    'ca_controller' => 'Pages',
+    'ca_method' => 'show',
 ]
 ```
 
@@ -565,10 +565,10 @@ Str::slug('My Title')          // my-title
 'template_raw_tags' => ['{{{', '}}}'] // Raw echo tags
 
 // Routing
-'routing' => [
-    'catch_all' => false,            // Enable catch-all routing
-    'controller' => 'Pages',
-    'method' => 'show'
+'catch_all' => [
+    'ca_enabled' => false,            // Enable catch-all routing
+    'ca_controller' => 'Pages',
+    'ca_method' => 'show'
 ]
 
 // Error pages
