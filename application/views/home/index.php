@@ -4,7 +4,7 @@
 <div class="wrapper">
 	<div class="header">
 		<div class="logo">
-			<img src="{{ Url::assets('img/logo.png') }}" alt="Rachie">
+			<img src="{{ Url::assets('images/Rachie Logo.png') }}" alt="Rachie Logo">
 		</div>
 		<div class="header-text">
 			<h1>Rachie Framework</h1>
@@ -97,8 +97,8 @@
 		<div>
 			&copy; 2015-2050 Geoffrey Okongo
 		</div>
-		@if(isset($request_time) && $request_time)
-			<div class="footer-time">Request time: {{ $request_time }}</div>
+		@isset($request_time)
+			<div class="footer-time">Request time: {{ number_format($request_time, 4) }} seconds</div>
 		@endif
 	</div>
 </div>
