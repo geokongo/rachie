@@ -66,11 +66,11 @@ return array(
 	 *   password: '' (local with XAMPP/MAMP) or your hosting password
 	 *   port: 3306 (default MySQL port)
 	 */
-	'mysql' => array(		
+	'mysql' => array(
 		'host'     => 'localhost',           // Database server hostname or IP
 		'username' => 'root',                // Database username
 		'password' => '',                    // Database password
-		'database' => 'ke_search',                    // Database name (e.g., 'my_app_db')
+		'database' => 'rachie',              // Database name (e.g., 'my_app_db')
 		'port'     => '3306',                // MySQL default port
 		'charset'  => 'utf8mb4',             // Character encoding (utf8mb4 recommended for emoji support)
 		'engine'   => 'InnoDB',              // Storage engine (InnoDB for transactions)

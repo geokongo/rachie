@@ -497,6 +497,7 @@ return array(
 		 * Default: 'show'
 		 */
 		'method' => 'show',
+		
 		/**
 		 * Routing Mode
 		 * 

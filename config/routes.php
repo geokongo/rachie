@@ -36,8 +36,8 @@ return array(
 	 * The URL path becomes a friendly alias for the controller action.
 	 * Additional URL segments after the path become method parameters.
 	 */
-	'blog' => 'Posts',				 // /blog → PostsController
-	'contact' => 'Pages@contact',    // /contact → PagesController::contact()
+	'blog' 		=> 'Posts',				 // /blog → PostsController
+	'contact' 	=> 'Pages@contact',    // /contact → PagesController::contact()
 
 	// ===========================================================================
 	// COMPOUND ROUTES (2-segment matching)
@@ -79,8 +79,8 @@ return array(
 	 *   Access: Input::get('id') returns '123'
 	 */
 
-	'profile' => 'User@show/id',
-	'post' => 'Blog@view/slug',
+	'profile' 	=> 'User@show/id',
+	'post' 		=> 'Blog@view/slug',
 
 	// ===========================================================================
 	// PATTERN ROUTES (WILDCARD MATCHING)
@@ -112,9 +112,9 @@ return array(
 	 * So 'blog' (exact) is checked before 'blog/*' (pattern).
 	 */
 
-	'blog/*' => 'Blog@show/slug',
-	'products/*' => 'Products@show/slug',
-	'docs/*' => 'Documentation@show/path',
+	'blog/*' 		=> 'Blog@show/slug',
+	'products/*' 	=> 'Products@show/slug',
+	'docs/*' 		=> 'Documentation@show/path',
 
 	// ===========================================================================
 	// URL-BASED ROUTING (NO ROUTES NEEDED)

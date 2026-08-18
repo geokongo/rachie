@@ -1,6 +1,7 @@
 <IfModule mod_rewrite.c>
     # Rachie Framework - Request Router
     # Routes all requests through index.php except actual files (CSS, JS, images)
+    #
     # Note: We only check for files (!-f), NOT directories (!-d).
     # This ensures routes like /admin work even if public/admin/ directory exists.
 
@@ -10,7 +11,8 @@
     RewriteCond %{REQUEST_FILENAME} !-f
 
     # Route everything else through index.php
-    RewriteRule ^(.*)$ index.php?_rachie_route=$1 [QSA,L]
+    # [B] flag: Escape backreferences (handles spaces and special chars in URL segments)
+    RewriteRule ^(.*)$ index.php?_rachie_route=$1 [B,QSA,L]
 </IfModule>
 
 # Prevent directory listing
