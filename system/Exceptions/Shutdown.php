@@ -302,5 +302,5 @@ HTML;
 	}
 
 		// Stop code execution completely
-		exit(1);
+		exit();
 }
