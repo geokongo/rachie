@@ -20,7 +20,7 @@ use Rackage\Model;
 class UserModel extends Model
 {
     /**
-     * Database table name
+     * Database table name for this model
      *
      * @var string
      */
