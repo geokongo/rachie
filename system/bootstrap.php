@@ -39,7 +39,9 @@ try {
 	// -----------------------------------------------------------------------
 	// This file contains core application settings. Without it the framework freezes
 	// The application cannot run without it.
-	$settings = require_once __DIR__ . '/../config/settings.php';
+	$settings = require_once (file_exists(__DIR__ . '/../config/overrides/settings.php')
+	? __DIR__ . '/../config/overrides/settings.php'
+	: __DIR__ . '/../config/settings.php');
 
 	// Set application timezone from configuration
 	// This ensures all date/time functions (date(), time(), Date helper, etc.)
