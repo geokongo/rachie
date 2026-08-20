@@ -110,7 +110,7 @@ return array(
 	 * 
 	 * IMPORTANT: Always set to FALSE in production environments!
 	 */
-	'debug' => true,
+	'debug' => false,
 
 	/**
 	 * Error Log File Path
